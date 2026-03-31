@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import ImageUploadZone from './ImageUploadZone'
 import XRayViewer from './XRayViewer'
 import FindingsSidebar from './FindingsSidebar'
+import BackendWakeup from './BackendWakeup'
 import { exportToPDF } from '../utils/pdf'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001'
+const WAKEUP_DELAY_MS = 4000 // show loader after 4s of waiting
 
 export default function AnalysisModule({ tab }) {
   const [imageFile, setImageFile] = useState(null)
@@ -17,6 +19,27 @@ export default function AnalysisModule({ tab }) {
   const [patientName, setPatientName] = useState('')
   const [selectedFinding, setSelectedFinding] = useState(null)
   const [exporting, setExporting] = useState(false)
+  const [showWakeup, setShowWakeup] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const wakeupTimerRef = useRef(null)
+  const elapsedTimerRef = useRef(null)
+
+  // Start / stop the wakeup overlay timers alongside loading
+  useEffect(() => {
+    if (loading) {
+      wakeupTimerRef.current = setTimeout(() => setShowWakeup(true), WAKEUP_DELAY_MS)
+      elapsedTimerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
+    } else {
+      clearTimeout(wakeupTimerRef.current)
+      clearInterval(elapsedTimerRef.current)
+      setShowWakeup(false)
+      setElapsed(0)
+    }
+    return () => {
+      clearTimeout(wakeupTimerRef.current)
+      clearInterval(elapsedTimerRef.current)
+    }
+  }, [loading])
 
   const handleImageSelect = useCallback((file) => {
     setImageFile(file)
@@ -107,6 +130,7 @@ export default function AnalysisModule({ tab }) {
 
   return (
     <div className="space-y-4 slide-in">
+      <BackendWakeup visible={showWakeup} elapsed={elapsed} />
       {/* Description bar */}
       <div
         className="rounded-lg px-4 py-3 flex items-center justify-between border"
