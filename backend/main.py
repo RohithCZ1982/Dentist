@@ -11,14 +11,20 @@ load_dotenv()
 
 app = FastAPI(title="Dental X-Ray AI Diagnosis API", version="1.0.0")
 
+_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+# Add production frontend URL if set (e.g. https://dental-ai.vercel.app)
+_frontend_url = os.getenv("FRONTEND_URL", "")
+if _frontend_url:
+    _origins.append(_frontend_url.rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
